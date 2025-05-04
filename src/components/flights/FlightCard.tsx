@@ -110,4 +110,3 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight }) => {
 };
 
 export default FlightCard;
-
