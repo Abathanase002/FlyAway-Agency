@@ -33,7 +33,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const FlightDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentUser, isAuthenticated } = useAuth();
+  const { currentUser, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const queryClient = useQueryClient();
 
   const [isBookingDialogOpen, setIsBookingDialogOpen] = useState(false);
@@ -41,43 +41,53 @@ const FlightDetails = () => {
   const [bookingError, setBookingError] = useState<string | null>(null);
 
   // Fetch flight details
-  const { data: flight, isLoading: isLoadingFlight, error: flightError } = useQuery<Flight | null, Error>({
+  const { 
+    data: flight, 
+    isLoading: isLoadingFlight, 
+    error: flightError 
+  } = useQuery<Flight | null, Error>({
     queryKey: ['flight', id],
     queryFn: () => getFlightById(id || ''),
     enabled: !!id,
-  })
+  });
 
   // Fetch user's bookings
-  const customerId = currentUser?.UserType === 'Customer' ? (currentUser as Customer).CustomerID : undefined;
-  const { data: userBookings = [], isLoading: isLoadingBookings } = useQuery<Booking[], Error>({
+  const customerId = currentUser?.UserType === 'Customer' 
+    ? (currentUser as Customer).CustomerID 
+    : undefined;
+  
+  const { 
+    data: userBookings = [], 
+    isLoading: isLoadingBookings 
+  } = useQuery<Booking[], Error>({
     queryKey: ['bookings', customerId],
     queryFn: () => getBookingsByCustomerId(customerId || ''),
-    enabled: !!customerId && isAuthenticated,
+    enabled: !isAuthLoading && !!customerId && isAuthenticated,
   });
 
   const isAlreadyBooked = userBookings.some(
     booking => booking.FlightID === flight?.FlightID && booking.Status !== 'Cancelled'
   );
 
-  // Mutation for creating a booking
-  const bookingMutation = useMutation<Booking, Error, Omit<Booking, 'BookingID' | 'BookingDate' | 'Customer' | 'Flight' | 'Agent'>>({
+  // Booking mutation
+  const bookingMutation = useMutation({
     mutationFn: createBooking,
     onSuccess: (newBooking) => {
       setIsBookingConfirmed(true);
       setBookingError(null);
-      queryClient.invalidateQueries({ queryKey: ['flights'] });
-      queryClient.invalidateQueries({ queryKey: ['flight', id] });
-      queryClient.invalidateQueries({ queryKey: ['bookings', customerId] });
+      queryClient.invalidateQueries(['flights']);
+      queryClient.invalidateQueries(['flight', id]);
+      queryClient.invalidateQueries(['bookings', customerId]);
       toast({
         title: "Booking Successful!",
         description: `Your booking (ID: ${newBooking.BookingID}) has been confirmed.`,
       });
     },
-    onError: (error) => {
-      setBookingError(`Booking failed: ${error.message}. Please try again.`);
+    onError: (error: Error) => {
+      setBookingError(error.message);
       toast({
         title: "Booking Failed",
-        description: error.message || "Could not complete booking.",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -92,7 +102,8 @@ const FlightDetails = () => {
     }
   }, [isBookingDialogOpen]);
 
-  if (isLoadingFlight || isLoadingBookings) {
+  // Loading state
+  if (isLoadingFlight || isLoadingBookings || isAuthLoading) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
@@ -114,6 +125,7 @@ const FlightDetails = () => {
     );
   }
 
+  // Error states
   if (flightError) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -160,40 +172,39 @@ const FlightDetails = () => {
     );
   }
 
+  // Format flight times
   const departureDate = parseISO(flight.DepartureTime);
   const arrivalDate = parseISO(flight.ArrivalTime);
-
   const formattedDepartureDate = format(departureDate, 'EEE, MMM d, yyyy');
   const formattedDepartureTime = format(departureDate, 'h:mm a');
   const formattedArrivalDate = format(arrivalDate, 'EEE, MMM d, yyyy');
   const formattedArrivalTime = format(arrivalDate, 'h:mm a');
-
   const durationMillis = arrivalDate.getTime() - departureDate.getTime();
   const hours = Math.floor(durationMillis / (1000 * 60 * 60));
   const minutes = Math.floor((durationMillis / (1000 * 60)) % 60);
   const formattedDuration = `${hours}h ${minutes}m`;
 
+  // Handlers
   const handleBookFlight = () => {
-    if (!isAuthenticated || !customerId) {
+    if (isAuthLoading) return;
+    if (!isAuthenticated) {
       navigate('/login', { state: { from: `/flights/${flight.FlightID}` } });
       return;
     }
     setIsBookingDialogOpen(true);
   };
 
-  const confirmBookingAction = () => {
+  const confirmBooking = () => {
     if (!customerId || !flight.FlightID) return;
-
-    const bookingData: Omit<Booking, 'BookingID' | 'BookingDate' | 'Customer' | 'Flight' | 'Agent'> = {
+    bookingMutation.mutate({
       CustomerID: customerId,
       FlightID: flight.FlightID,
       Status: 'Pending',
       AgentID: null,
-    };
-    bookingMutation.mutate(bookingData);
+    });
   };
 
-  const goToBookings = () => {
+  const viewBookings = () => {
     setIsBookingDialogOpen(false);
     navigate('/bookings');
   };
@@ -203,6 +214,7 @@ const FlightDetails = () => {
       <Navbar />
 
       <main className="flex-grow">
+        {/* Flight Header */}
         <section className="bg-travel-600 text-white py-8">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -232,15 +244,18 @@ const FlightDetails = () => {
           </div>
         </section>
 
+        {/* Flight Content */}
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Flight Details */}
               <div className="col-span-2">
                 <Card>
                   <CardHeader>
                     <CardTitle>Flight Details</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* Flight Timeline */}
                     <div className="mb-8">
                       <div className="flex items-start">
                         <div className="flex flex-col items-center mr-4">
@@ -288,12 +303,12 @@ const FlightDetails = () => {
 
                     <Separator className="my-6" />
 
+                    {/* Aircraft Info */}
                     <div className="mb-6">
                       <h3 className="font-semibold mb-2 flex items-center">
                         <Plane className="h-4 w-4 mr-2" />
                         Aircraft Information
                       </h3>
-
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <div className="text-sm text-gray-500">Model</div>
@@ -316,22 +331,23 @@ const FlightDetails = () => {
 
                     <Separator className="my-6" />
 
+                    {/* Additional Info */}
                     <div>
                       <h3 className="font-semibold mb-2 flex items-center">
                         <Info className="h-4 w-4 mr-2" />
                         Additional Information
                       </h3>
-
                       <div className="text-sm text-gray-600 space-y-2">
                         <p>• Check-in opens 3 hours before departure</p>
                         <p>• Boarding gate closes 20 minutes before departure</p>
-                        <p>• Standard baggage allowance applies (Check airline policy)</p>
+                        <p>• Standard baggage allowance applies</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Booking Sidebar */}
               <div>
                 <Card className="sticky top-4">
                   <CardHeader>
@@ -346,9 +362,11 @@ const FlightDetails = () => {
                       <Button
                         className="w-full bg-travel-600 hover:bg-travel-700"
                         onClick={handleBookFlight}
-                        disabled={isAlreadyBooked || bookingMutation.isPending}
+                        disabled={isAuthLoading || isAlreadyBooked || bookingMutation.isPending}
                       >
-                        {bookingMutation.isPending ? (
+                        {isAuthLoading ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</>
+                        ) : bookingMutation.isPending ? (
                           <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
                         ) : isAlreadyBooked ? (
                           'Already Booked'
@@ -357,9 +375,11 @@ const FlightDetails = () => {
                         )}
                       </Button>
 
-                      <div className="text-center text-sm text-gray-500">
-                        {!isAuthenticated && "You'll need to login to complete your booking"}
-                      </div>
+                      {!isAuthLoading && !isAuthenticated && (
+                        <div className="text-center text-sm text-gray-500">
+                          You'll need to login to complete your booking
+                        </div>
+                      )}
 
                       <div className="flex items-center justify-center text-sm text-gray-500">
                         <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
@@ -376,13 +396,17 @@ const FlightDetails = () => {
 
       <Footer />
 
+      {/* Booking Dialog */}
       <Dialog open={isBookingDialogOpen} onOpenChange={setIsBookingDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isBookingConfirmed ? 'Booking Confirmed!' : 'Complete Your Booking'}</DialogTitle>
+            <DialogTitle>
+              {isBookingConfirmed ? 'Booking Confirmed!' : 'Complete Your Booking'}
+            </DialogTitle>
           </DialogHeader>
 
           {isBookingConfirmed ? (
+            // Confirmation View
             <div className="py-6">
               <div className="flex flex-col items-center justify-center text-center mb-6">
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
@@ -390,18 +414,18 @@ const FlightDetails = () => {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Thank you for your booking!</h3>
                 <p className="text-gray-600 mb-4">
-                  Your flight booking is pending confirmation. You can view its status in your bookings.
+                  Your flight booking is pending confirmation.
                 </p>
                 {bookingMutation.data?.BookingID && (
-                    <div className="bg-gray-50 rounded-lg p-4 w-full mb-4">
-                        <div className="text-sm text-gray-500 mb-1">Booking Reference</div>
-                        <div className="font-semibold text-lg">{bookingMutation.data.BookingID}</div>
-                    </div>
+                  <div className="bg-gray-50 rounded-lg p-4 w-full mb-4">
+                    <div className="text-sm text-gray-500 mb-1">Booking Reference</div>
+                    <div className="font-semibold text-lg">{bookingMutation.data.BookingID}</div>
+                  </div>
                 )}
               </div>
               <div className="flex justify-end">
                 <Button
-                  onClick={goToBookings}
+                  onClick={viewBookings}
                   className="bg-travel-600 hover:bg-travel-700"
                 >
                   View My Bookings
@@ -409,6 +433,7 @@ const FlightDetails = () => {
               </div>
             </div>
           ) : (
+            // Booking Form
             <div className="py-4">
               <div className="space-y-4">
                 <div>
@@ -455,7 +480,7 @@ const FlightDetails = () => {
                     Payment Information
                   </h3>
                   <div className="bg-gray-50 rounded p-3 text-sm text-gray-500">
-                    Payment processing will be handled upon confirmation.
+                    Payment will be collected after confirmation.
                   </div>
                 </div>
 
@@ -468,11 +493,15 @@ const FlightDetails = () => {
               </div>
 
               <div className="mt-6 flex justify-end space-x-3">
-                <Button variant="outline" onClick={() => setIsBookingDialogOpen(false)} disabled={bookingMutation.isPending}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsBookingDialogOpen(false)}
+                  disabled={bookingMutation.isPending}
+                >
                   Cancel
                 </Button>
                 <Button
-                  onClick={confirmBookingAction}
+                  onClick={confirmBooking}
                   className="bg-travel-600 hover:bg-travel-700"
                   disabled={bookingMutation.isPending}
                 >
