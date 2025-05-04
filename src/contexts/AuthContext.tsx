@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Customer, Employee, customers, employees } from '@mockData';
+import { User, Customer, Employee, customers, employees } from '/@mockData';
 import { toast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
