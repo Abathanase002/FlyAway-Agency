@@ -1,7 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Customer, Employee, customers, employees } from '@/mockData';
+import { User, Customer, Employee, customers, employees } from '@/mockData'; // Ensure this path is correct
 import { toast } from "@/components/ui/use-toast";
+
+// DEBUG: Log mock data immediately after import
+console.log('AuthContext: customers imported:', customers);
 
 interface AuthContextType {
   currentUser: User | Customer | Employee | null;
@@ -10,6 +12,7 @@ interface AuthContextType {
   register: (userData: RegisterData) => Promise<boolean>;
   isAuthenticated: boolean;
   isLoading: boolean;
+  updateUser: (updates: Partial<User | Customer | Employee>) => void;
 }
 
 interface RegisterData {
@@ -31,30 +34,58 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | Customer | Employee | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // DEBUG: Directly initialize with mock user for testing
+  const initialUser = (import.meta.env.DEV && customers && customers.length > 0) ? customers[0] : null;
+  console.log('AuthContext: Initializing currentUser state with:', initialUser);
+  const [currentUser, setCurrentUser] = useState<User | Customer | Employee | null>(initialUser);
+  const [isLoading, setIsLoading] = useState(true); // Set to true initially
 
-  // Check for stored user on mount
+  // Original useEffect logic (kept for reference, but initial state is now set above)
   useEffect(() => {
+    console.log('AuthContext useEffect running...');
     const storedUser = localStorage.getItem('wanderlustUser');
+    let userToSet = null;
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setCurrentUser(parsedUser);
+        userToSet = JSON.parse(storedUser);
+        console.log('Loaded user from localStorage:', userToSet);
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('wanderlustUser');
+        // Fallback to mock user if parsing fails in dev
+        if (import.meta.env.DEV && customers && customers.length > 0) {
+          userToSet = customers[0];
+          localStorage.setItem('wanderlustUser', JSON.stringify(userToSet));
+          console.log('Initialized with default mock user after parse error:', userToSet);
+        }
+      }
+    } else {
+      // Fallback to mock user if none found in localStorage in dev
+      if (import.meta.env.DEV && customers && customers.length > 0) {
+        userToSet = customers[0];
+        localStorage.setItem('wanderlustUser', JSON.stringify(userToSet));
+        console.log('Initialized with default mock user (no stored user):', userToSet);
       }
     }
-    setIsLoading(false);
-  }, []);
+    
+    // Only set state if it differs from the initial direct assignment
+    // This avoids unnecessary re-renders if the direct assignment already worked
+    if (JSON.stringify(currentUser) !== JSON.stringify(userToSet)) {
+        setCurrentUser(userToSet);
+    }
+    setIsLoading(false); // Set loading to false after attempting initialization
+
+  }, []); // Empty dependency array means this runs once on mount
+
+  useEffect(() => {
+    console.log('currentUser state updated:', currentUser);
+  }, [currentUser]);
 
   const login = async (email: string, password: string, userType: string): Promise<boolean> => {
+    // ... (rest of login function remains the same)
     setIsLoading(true);
     try {
-      // Simulate API call with timeout
       await new Promise(resolve => setTimeout(resolve, 500));
-      
       let user = null;
       if (userType === 'Customer') {
         user = customers.find(c => c.email === email);
@@ -63,8 +94,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (user) {
-        // In a real app, we would validate the password here
-        // For this mock, we'll just pretend it's correct if the email exists
         setCurrentUser(user);
         localStorage.setItem('wanderlustUser', JSON.stringify(user));
         toast({
@@ -94,6 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    // ... (rest of logout function remains the same)
     setCurrentUser(null);
     localStorage.removeItem('wanderlustUser');
     toast({
@@ -103,12 +133,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const register = async (userData: RegisterData): Promise<boolean> => {
+    // ... (rest of register function remains the same)
     setIsLoading(true);
     try {
-      // Simulate API call with timeout
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Check if email is already in use
       const emailExists = [...customers, ...employees].some(u => u.email === userData.email);
       if (emailExists) {
         toast({
@@ -119,8 +147,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // In a real app, we would add the user to the database here
-      // For this mock, we'll just create a user object and pretend it was saved
       const newUser: User = {
         id: `USR${Math.floor(Math.random() * 10000).toString().padStart(3, '0')}`,
         firstName: userData.firstName,
@@ -129,7 +155,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userType: userData.userType as 'Customer' | 'Employee',
       };
 
-      // For demo purposes, we'll assume all registrations are for customers
       if (userData.userType === 'Customer') {
         const newCustomer: Customer = {
           ...newUser,
@@ -138,7 +163,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(newCustomer);
         localStorage.setItem('wanderlustUser', JSON.stringify(newCustomer));
       } else {
-        // This would normally go through admin approval
         setCurrentUser(newUser);
         localStorage.setItem('wanderlustUser', JSON.stringify(newUser));
       }
@@ -161,6 +185,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = (updates: Partial<User | Customer | Employee>) => {
+    // ... (rest of updateUser function remains the same)
+    if (currentUser) {
+      const updatedUser = { ...currentUser, ...updates };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('wanderlustUser', JSON.stringify(updatedUser));
+      console.log('User updated:', updatedUser);
+    }
+  };
+
   const value = {
     currentUser,
     login,
@@ -168,7 +202,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     isAuthenticated: !!currentUser,
     isLoading,
+    updateUser,
   };
+
+  // DEBUG: Log the value being provided by the context
+  console.log('AuthContext providing value:', value);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
