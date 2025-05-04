@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import BookingCard from '@/components/bookings/BookingCard';
-import { Booking, bookings } from '@/utils/mockData';
+import { Booking, bookings } from '@mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Search, Filter, AlertCircle } from 'lucide-react';
 
