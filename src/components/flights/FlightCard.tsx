@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -15,25 +14,31 @@ interface FlightCardProps {
 const FlightCard: React.FC<FlightCardProps> = ({ flight }) => {
   const navigate = useNavigate();
 
-  // Use the correct field names from the updated Flight type
-  const departureDate = parseISO(flight.DepartureTime);
-  const arrivalDate = parseISO(flight.ArrivalTime);
+  // Safely parse dates, providing fallbacks if needed
+  const departureDate = flight.DepartureTime ? parseISO(flight.DepartureTime) : new Date();
+  const arrivalDate = flight.ArrivalTime ? parseISO(flight.ArrivalTime) : new Date();
 
   const formattedDepartureTime = format(departureDate, 'h:mm a');
   const formattedArrivalTime = format(arrivalDate, 'h:mm a');
   const formattedDate = format(departureDate, 'MMM d, yyyy');
 
-  // Calculate flight duration
+  // Calculate flight duration safely
   const durationMillis = arrivalDate.getTime() - departureDate.getTime();
   const hours = Math.floor(durationMillis / (1000 * 60 * 60));
   const minutes = Math.floor((durationMillis / (1000 * 60)) % 60);
-  const formattedDuration = `${hours}h ${minutes}m`;
+  const formattedDuration = `${hours >= 0 ? hours : 0}h ${minutes >= 0 ? minutes : 0}m`;
 
   // Time until departure
   const timeUntilDeparture = formatDistanceToNow(departureDate, { addSuffix: true });
 
   const viewFlightDetails = () => {
-    navigate(`/flights/${flight.FlightID}`); // Use FlightID
+    // Use optional chaining for flight ID as well for safety
+    navigate(`/flights/${flight?.FlightID ?? 'unknown'}`); 
+  };
+
+  // Helper function to safely get truncated location name
+  const getTruncatedLocationName = (name: string | undefined | null): string => {
+    return name?.split(' ').slice(0, 2).join(' ') ?? 'N/A';
   };
 
   return (
@@ -42,15 +47,15 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight }) => {
         <div className="flex flex-col md:flex-row justify-between">
           {/* Flight info */}
           <div className="flex-1">
-            <div className="flex items-center mb-4">
-              <Badge variant="outline" className="text-travel-600 border-travel-200 bg-travel-50">
-                {flight.FlightID} {/* Use FlightID */}
+            <div className="flex items-center mb-4 flex-wrap">
+              <Badge variant="outline" className="text-travel-600 border-travel-200 bg-travel-50 mr-2 mb-1 md:mb-0">
+                {flight.FlightID ?? 'N/A'} 
               </Badge>
-              <span className="ml-2 text-sm text-gray-500">
+              <span className="mr-2 mb-1 md:mb-0 text-sm text-gray-500">
                 <Calendar className="h-3 w-3 inline mr-1" />
                 {formattedDate}
               </span>
-              <span className="ml-2 text-sm text-gray-500">
+              <span className="text-sm text-gray-500">
                 <Clock className="h-3 w-3 inline mr-1" />
                 {formattedDuration}
               </span>
@@ -59,9 +64,9 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight }) => {
             <div className="flex flex-col md:flex-row items-start md:items-center mb-4">
               <div className="text-left mr-4">
                 <p className="font-semibold text-lg">{formattedDepartureTime}</p>
-                {/* Use expanded data fields with correct names */}
-                <p className="text-sm text-gray-500">{flight.DepartureLocationData?.IATA_Code}</p>
-                <p className="text-xs">{flight.DepartureLocationData?.Name.split(' ').slice(0, 2).join(' ')}</p>
+                <p className="text-sm text-gray-500">{flight.DepartureLocationData?.IATA_Code ?? 'N/A'}</p>
+                {/* Safely access and truncate name */}
+                <p className="text-xs">{getTruncatedLocationName(flight.DepartureLocationData?.Name)}</p>
               </div>
 
               <div className="hidden md:flex flex-1 items-center px-4 my-2">
@@ -72,31 +77,23 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight }) => {
 
               <div className="text-left md:text-right">
                 <p className="font-semibold text-lg">{formattedArrivalTime}</p>
-                {/* Use expanded data fields with correct names */}
-                <p className="text-sm text-gray-500">{flight.ArrivalLocationData?.IATA_Code}</p>
-                <p className="text-xs">{flight.ArrivalLocationData?.Name.split(' ').slice(0, 2).join(' ')}</p>
+                <p className="text-sm text-gray-500">{flight.ArrivalLocationData?.IATA_Code ?? 'N/A'}</p>
+                {/* Safely access and truncate name */}
+                <p className="text-xs">{getTruncatedLocationName(flight.ArrivalLocationData?.Name)}</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-gray-600">
-                {/* Use expanded data fields with correct names */}
-                {flight.Aircraft?.Manufacturer} {flight.Aircraft?.Model}
+                {flight.Aircraft?.Manufacturer ?? ''} {flight.Aircraft?.Model ?? 'Unknown Aircraft'}
               </span>
               <span className="text-sm text-gray-600">
-                {flight.AvailableSeats} seats available {/* Use AvailableSeats */}
+                {flight.AvailableSeats ?? 0} seats available
               </span>
             </div>
           </div>
 
           {/* Price section removed as 'price' is not in the schema */}
-          {/* <div className="mt-4 md:mt-0 md:ml-6 flex flex-col items-end justify-between">
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Price per person</p>
-              <p className="text-2xl font-bold text-travel-600">${flight.price.toFixed(2)}</p>
-              <p className="text-xs text-gray-500">{timeUntilDeparture}</p>
-            </div>
-          </div> */}
         </div>
       </CardContent>
 
@@ -113,3 +110,4 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight }) => {
 };
 
 export default FlightCard;
+
