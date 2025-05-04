@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { PlaneTakeoff, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube, Linkedin } from 'lucide-react';
@@ -18,19 +17,20 @@ const Footer: React.FC = () => {
               Your trusted travel partner for flights, bookings, and memorable journeys worldwide.
             </p>
             <div className="flex space-x-4">
-              <a href="https://www.facebook.com/Athanase002" className="text-gray-400 hover:text-white transition-colors">
+              {/* Add target="_blank" and rel="noopener noreferrer" to external links */}
+              <a href="https://www.facebook.com/Athanase002" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Facebook size={20} />
               </a>
-              <a href="https://x.com/athanase002" className="text-gray-400 hover:text-white transition-colors">
+              <a href="https://x.com/athanase002" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Twitter size={20} />
               </a>
-              <a href="https://www.instagram.com/athanase002/" className="text-gray-400 hover:text-white transition-colors">
+              <a href="https://www.instagram.com/athanase002/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Instagram size={20} />
               </a>
-              <a href="" className="text-gray-400 hover:text-white transition-colors">
+              <a href="" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Youtube size={20} />
               </a>
-              <a href="https://www.linkedin.com/in/athanase002/" className="text-gray-400 hover:text-white transition-colors">
+              <a href="https://www.linkedin.com/in/athanase002/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Linkedin size={20} />
               </a>
             </div>
@@ -53,10 +53,12 @@ const Footer: React.FC = () => {
                 <Link to="/register" className="text-gray-400 hover:text-white transition-colors">Create Account</Link>
               </li>
               <li>
-                <a href="https://ashesi.edu.gh/" className="text-gray-400 hover:text-white transition-colors">Travel Guide</a>
+                {/* Add target="_blank" and rel="noopener noreferrer" to external links */}
+                <a href="https://ashesi.edu.gh/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">Travel Guide</a>
               </li>
               <li>
-                <a href="https://ashesi.edu.gh/" className="text-gray-400 hover:text-white transition-colors">FAQs</a>
+                {/* Add target="_blank" and rel="noopener noreferrer" to external links */}
+                <a href="https://ashesi.edu.gh/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">FAQs</a>
               </li>
             </ul>
           </div>
@@ -110,9 +112,10 @@ const Footer: React.FC = () => {
               &copy; {new Date().getFullYear()} FlyAway Airline Agency. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="https://ashesi.edu.gh/" className="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
-              <a href="https://ashesi.edu.gh/" className="text-gray-400 hover:text-white text-sm transition-colors">Terms of Service</a>
-              <a href="https://ashesi.edu.gh/" className="text-gray-400 hover:text-white text-sm transition-colors">Cookie Policy</a>
+              {/* Add target="_blank" and rel="noopener noreferrer" to external links */}
+              <a href="https://ashesi.edu.gh/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</a>
+              <a href="https://ashesi.edu.gh/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm transition-colors">Terms of Service</a>
+              <a href="https://ashesi.edu.gh/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm transition-colors">Cookie Policy</a>
             </div>
           </div>
         </div>
