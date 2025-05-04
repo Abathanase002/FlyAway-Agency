@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { bookings, flights, customers } from '@/utils/mockData';
+import { bookings, flights, customers } from '@/mockData';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   BarChart3, 
